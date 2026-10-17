@@ -506,7 +506,10 @@ async function pilotDrive(robot, sid, label) {
       await animate(420, (k) => robot.root.setPosition(q.x + Math.sin(r) * len * sign * k, FLOOR, q.z + Math.cos(r) * len * sign * k));
     }
   }
-  robot.piloted = false; robot.task = 'parked';
+  robot.piloted = false;
+  const end = robot.root.getPosition();
+  if (Math.hypot(goal[0] - end.x, goal[2] - end.z) / UNITS_PER_M >= 1.5) { robot.pilotText += ' · route planner finishes'; sendArm(robot, sid); return false; }
+  robot.task = 'parked';
   return true;
 }
 async function patrol(robot) {
