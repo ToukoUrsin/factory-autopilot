@@ -181,7 +181,7 @@ function sendArm(arm, stationId) {
 }
 function updateArm(arm, dt, time) {
   const pos = arm.root.getPosition();
-  if (arm.path.length) {
+  if (arm.path.length && !arm.piloted) {
     const [tx, tz] = arm.path[0], dx = tx - pos.x, dz = tz - pos.z, len = Math.hypot(dx, dz), step = ARM_SPEED * dt * simSpeedFactor();
     const want = Math.atan2(dx, dz) * 180 / Math.PI;
     let dh = ((want - arm.heading + 540) % 360) - 180; arm.heading += Math.sign(dh) * Math.min(Math.abs(dh), 400 * dt);
@@ -329,7 +329,7 @@ function drawTags() {
     st.sensor.render.material = statusMat(status);
     const beam = status === 'ok' ? M.beamMint : M.beamRed; st.ring.render.meshInstances[0].material = beam; st.beam.render.material = beam;
   }
-  for (const arm of Object.values(arms)) { const p = arm.root.getPosition(); place(tag(arm.id, 'tag robot'), [p.x, p.y + 3.4, p.z], `<b>${arm.id}</b> ${arm.task}${arm.task !== 'idle' ? ' → ' + arm.station : ''}`, 'tag robot'); }
+  for (const arm of Object.values(arms)) { const p = arm.root.getPosition(); place(tag(arm.id, 'tag robot'), [p.x, p.y + 3.4, p.z], `<b>${arm.id}</b> ${arm.piloted || arm.id.startsWith('ROVER') ? 'Nemotron: ' + (arm.pilotText || '…') : arm.task + (arm.task !== 'idle' ? ' → ' + arm.station : '')}`, 'tag robot'); }
 }
 
 // ---------- cameras + Nemotron VL detection ----------
@@ -421,9 +421,10 @@ const NODES = [
   { id: 'ALEX', label: 'Planner', sub: 'Nemotron 3 Super', x: 220, y: 92, gen: 0 },
   { id: 'NANO', label: 'Verifier', sub: 'Nemotron Nano', x: 370, y: 92, gen: 1 },
   { id: 'DISPATCH', label: 'Dispatch', sub: 'work orders', x: 220, y: 160, gen: 0 },
-  { id: 'ARM-01', label: 'ARM-01', x: 160, y: 226, gen: 0 }, { id: 'ARM-02', label: 'ARM-02', x: 280, y: 226, gen: 0 },
+  { id: 'PILOT', label: 'Pilot', sub: 'Nemotron 3.5 Lightning', x: 70, y: 160, gen: 0, heat: ['ROVER-1'] },
+  { id: 'ARM-01', label: 'ARM-01', x: 150, y: 226, gen: 0 }, { id: 'ARM-02', label: 'ARM-02', x: 250, y: 226, gen: 0 }, { id: 'ROVER-1', label: 'ROVER-1', x: 50, y: 226, gen: 0 },
 ];
-const EDGES = [['CAMS', 'VISION'], ['SENSOR', 'ALEX'], ['VISION', 'ALEX'], ['ALEX', 'NANO', 1], ['ALEX', 'DISPATCH'], ['NANO', 'DISPATCH', 1], ['DISPATCH', 'ARM-01'], ['DISPATCH', 'ARM-02']];
+const EDGES = [['CAMS', 'VISION'], ['SENSOR', 'ALEX'], ['VISION', 'ALEX'], ['ALEX', 'NANO', 1], ['ALEX', 'DISPATCH'], ['NANO', 'DISPATCH', 1], ['DISPATCH', 'ARM-01'], ['DISPATCH', 'ARM-02'], ['ALEX', 'PILOT'], ['PILOT', 'ROVER-1'], ['PILOT', 'ARM-01']];
 const TOOLS = [{ key: 'deadline_sweep', label: 'deadline sweep', gen: 2, x: 375, y: 150 }, { key: 'reorder_buffer', label: 'reorder buffer', gen: 3, x: 375, y: 182 }, { key: 'fast_track', label: 'fast-track', gen: 4, x: 375, y: 214, rejected: true }];
 const nodeHeat = {};
 function buildArch() {
@@ -476,6 +477,47 @@ function buildLedger() {
   }).join('');
 }
 
+// ---------- Nemotron pilot: discrete drive commands ----------
+const UNITS_PER_M = 3; // the scan is scaled 3x
+function freeRay(x, z, deg) {
+  const r = deg * Math.PI / 180; let d = 0;
+  while (d < 30) { const [i, j] = cellOf(x + Math.sin(r) * (d + 0.15), z + Math.cos(r) * (d + 0.15)); if (!open(i, j)) break; d += 0.15; }
+  return d / UNITS_PER_M;
+}
+function animate(ms, fn) { return new Promise((res) => { const t0 = performance.now(); const step = (now) => { const k = Math.min(1, (now - t0) / ms); fn(k); if (k < 1) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); }); }
+async function pilotDrive(robot, sid, label) {
+  const goal = STATION_MAP[sid].dock, last = [];
+  robot.path = []; robot.task = 'driving'; robot.station = sid; robot.piloted = true;
+  for (let call = 0; call < 24; call++) {
+    const p = robot.root.getPosition(), dx = goal[0] - p.x, dz = goal[2] - p.z, dist = Math.hypot(dx, dz) / UNITS_PER_M;
+    if (dist < 1.5) break;
+    const bearing = ((Math.atan2(dx, dz) * 180 / Math.PI - robot.heading + 540) % 360) - 180;
+    const rays = Object.fromEntries([-90, -45, 0, 45, 90].map((a) => [a, freeRay(p.x, p.z, robot.heading + a)]));
+    const res = await fetch('/api/pilot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ robot: robot.id, goal: label || sid, bearing, distance: dist, rays, last }) }).then((r) => r.json()).catch(() => ({ ok: false }));
+    if (!res.ok) { robot.pilotText = 'pilot unavailable · route planner'; robot.piloted = false; sendArm(robot, sid); return false; }
+    robot.pilotText = res.commands.join(' ▸ '); flashNode(robot.id); flashNode('PILOT');
+    for (const cmd of res.commands) {
+      last.push(cmd);
+      if (cmd === 'stop') break;
+      if (cmd === 'left' || cmd === 'right') { const h0 = robot.heading, h1 = h0 + (cmd === 'right' ? 45 : -45); await animate(260, (k) => { robot.heading = h0 + (h1 - h0) * k; robot.root.setEulerAngles(0, robot.heading, 0); }); continue; }
+      const sign = cmd === 'forward' ? 1 : -1, r = robot.heading * Math.PI / 180, q = robot.root.getPosition().clone();
+      let len = 1.2 * UNITS_PER_M; while (len > 0.2 && !clearLine([q.x, q.z], [q.x + Math.sin(r) * len * sign, q.z + Math.cos(r) * len * sign])) len -= 0.3;
+      if (len <= 0.2) { robot.pilotText += ' · blocked'; break; }
+      await animate(420, (k) => robot.root.setPosition(q.x + Math.sin(r) * len * sign * k, FLOOR, q.z + Math.cos(r) * len * sign * k));
+    }
+  }
+  robot.piloted = false; robot.task = 'parked';
+  return true;
+}
+async function patrol(robot) {
+  const route = ['S08', 'S01', 'S05', 'S07', 'S04', 'S02'];
+  for (let k = 0; ; k = (k + 1) % route.length) {
+    if (document.hidden || state.hold) { await sleep(1000); continue; }
+    await pilotDrive(robot, route[k], `${route[k]} ${STATION_MAP[route[k]].object.component_name}`);
+    robot.pilotText = `arrived ${route[k]}`; await sleep(1200);
+  }
+}
+
 // ---------- vision-triggered work order ----------
 async function visionWorkOrder() {
   const cam = CCTV.find((c) => c.result?.ok && c.result.detections.some((d) => !isOverlay(d) && isIssue(d)));
@@ -489,7 +531,10 @@ async function visionWorkOrder() {
   const wo = { day, robot: 'PLANNER', station_id: sid, status: 'warning', lvl: 'warn', message: `work order opened from camera: ${finding.label}` };
   pushFeed(wo); stations[sid].status = 'warn'; focusStation(sid);
   const arm = Object.values(arms).find((a) => ['idle', 'parked'].includes(a.task)) || arms['ARM-01'];
-  await sleep(600); sendArm(arm, sid); flashNode(arm.id);
+  await sleep(600); flashNode(arm.id);
+  pushFeed({ day, robot: `${arm.id} · Nemotron Lightning pilot`, station_id: sid, status: 'vision', lvl: 'vision', message: `driving to ${sid} with forward / left / right commands` });
+  caption(`${arm.id} driven by Nemotron`, 'Nemotron 3.5 Lightning outputs forward / left / right; obstacles come from the scanned floor');
+  await pilotDrive(arm, sid, `${sid} ${finding.label}`);
   for (let t = 0; t < 80 && arm.path.length; t++) await sleep(100);
   arm.task = 'working'; arm.working = 2.6; await sleep(2700);
   caption('Evidence frame → Nemotron VL checks the arm is on site', '');
@@ -581,7 +626,7 @@ async function boot() {
   const sun = new pc.Entity('key-light'); sun.addComponent('light', { type: 'directional', color: new pc.Color(1, 0.97, 0.9), intensity: 1.6, castShadows: false }); sun.setEulerAngles(50, 30, 0); app.root.addChild(sun);
   buildMaterials();
   STATION_IDS.forEach(buildStation);
-  buildArm('ARM-01', 'S01'); buildArm('ARM-02', 'S07');
+  buildArm('ARM-01', 'S01'); buildArm('ARM-02', 'S07'); buildArm('ROVER-1', 'S08');
   Object.keys(CAMERA_MAP).forEach(buildCamera);
   resetReplay(); telemetryAt(0);
   let time = 0, last = performance.now(), slow = 0;
@@ -604,6 +649,7 @@ async function boot() {
   $('loading').classList.add('done');
   if (state.view && STATION_MAP[state.view]) focusStation(state.view);
   window.__ready = true;
+  if (!params.has('nopatrol')) patrol(arms['ROVER-1']);
   detectCams().then(() => { window.__vision = true; if (params.has('demo')) demo(); else if (params.has('play')) play(); });
 }
 

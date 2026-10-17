@@ -14,6 +14,7 @@ from .engine import EDITS, EXAM_SEEDS, Policy, aggregate, learn, replay
 from .live import LIMITS, latest_evidence
 from .live import replay as replay_recorded
 from .vision import all_cached, detect, verify
+from .pilot import pilot
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
@@ -127,7 +128,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), MIME.get(target.suffix, "application/octet-stream"))
 
     def do_POST(self) -> None:  # noqa: N802
-        if urlparse(self.path).path not in ("/api/detect", "/api/verify"):
+        if urlparse(self.path).path not in ("/api/detect", "/api/verify", "/api/pilot"):
             self.send_error(404)
             return
         length = int(self.headers.get("content-length") or 0)
@@ -136,7 +137,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             body = json.loads(self.rfile.read(length))
-            if urlparse(self.path).path == "/api/verify":
+            if urlparse(self.path).path == "/api/pilot":
+                result = pilot(body)
+            elif urlparse(self.path).path == "/api/verify":
                 result = verify(str(body["camera"]), str(body.get("station", "")), str(body.get("finding", "")), str(body["image"]))
             else:
                 result = detect(str(body["camera"]), str(body.get("station", "")), str(body["image"]))

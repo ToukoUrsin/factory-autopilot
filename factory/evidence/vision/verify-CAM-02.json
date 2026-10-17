@@ -1,0 +1,21 @@
+{
+ "ok": true,
+ "camera": "CAM-02",
+ "station": "S02",
+ "finding": "red machine with cable: thick grey cable routed across the top edge, partially resting on the machine, potential snag/trip hazard",
+ "call": {
+  "role": "verify",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 1.11,
+  "finish_reason": "stop",
+  "prompt_tokens": 410,
+  "completion_tokens": 39,
+  "error": null,
+  "at": "2026-10-17T16:18:43-0700"
+ },
+ "arm_on_site": false,
+ "note": "The orange robot arm is not visible in the frame; only a red machine with a thick grey cable across its top is present."
+}
