@@ -1,39 +1,65 @@
 # Factory Autopilot · Version N+1
 
-An agent team that runs a real, scanned plant room and rewrites its own team, playbook and tools, keeping a change only when it measurably helps on **unseen** six-month runs.
+**A maintenance agent team that changes its own playbook, tools, and roles, then keeps a change only when a paired unseen-run gate proves it helps without making robot work less safe.**
 
-Built during The Recursive Agents Hackathon (Crusoe × Cerebral Valley, 17 Oct 2026). Track: **Version N+1**. All agents run on **Crusoe Managed Inference** (Nemotron).
+This is the Recursive Agents Hackathon (Crusoe × Cerebral Valley) **Version N+1** entry. The factory is a synthetic six-month digital twin over a real plant-room scan; the product is the self-improving team and its evaluator, not a dashboard.
 
-## What you see
+## Verified result
 
-- **The factory is a real Gaussian splat scan** (14.2M splats) of a mechanical plant room, rendered in the browser with `@playcanvas/supersplat-viewer`.
-- **Robots, valve actuators, sensors and camera masts are 3D objects inside the scan**, placed on surveyed equipment. Mobile arms path-find across the scanned floor (A* on a walk grid) and reach the valves with inverse kinematics.
-- **Six cameras** render their view of the scan; **Nemotron 3.5 Super VL** detects equipment and issues in each frame. A finding becomes a work order, an arm is dispatched, and a second VL call checks the evidence frame.
-- **The learning loop** (below) decides which changes carry into the next generation; each kept change is then re-tested by removing it.
+The recorded Crusoe run and a local deterministic replay agree. The exam split is held out from training and gate decisions (12 seeds: 201–212).
 
-## Result (12 unseen exam runs)
+| Exam metric | Team N baseline | Team N+3 learned |
+|---|---:|---:|
+| Mean score | 66.5 | **92.8** |
+| Unsafe robot actions | 21 | **0** |
+| Overdue work orders | 25 | **0** |
+| Evidence gaps | 46 | **15** |
+| Stockouts | 18 | **8** |
 
-| | Team N (baseline) | Team N+3 (learned) |
-|---|---|---|
-| Exam score | 66.5 | **92.8** |
-| Unsafe robot actions executed | 21 | **0** |
-| Evidence gaps | 46 | 15 |
+The gate kept `verifier_role` (+11.5 mean points, 11 wins/0 losses), `deadline_sweep` (+12.0, 12/0), and `reorder_buffer` (+1.0, 9/3). It rejected `fast_track` because unsafe actions rose from 0 to 15. The final ablation is in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
-What carries forward (exam points lost if the change is removed from N+3): verifier sub-agent −16.4 (21 unsafe actions without it), deadline sweep −10.3, reorder tool −0.8 (marginal). Rejected: fast-track (faster, 2.0 days, but 15 unsafe actions).
+## How the loop learns
+
+```mermaid
+flowchart LR
+  T[Training seeds 11–18] --> A[Deterministic failure audit]
+  A --> P[Nemotron planner on Crusoe\nwhitelisted candidate edits]
+  P --> G[Paired gate on unseen seeds 101–112\nmean gain ≥ 1, wins > losses,\nunsafe actions cannot increase]
+  G -->|keep| C[Next policy generation]
+  G -->|reject| A
+  C --> L[Leave-one-out ablation prune]
+  L --> E[One-time exam on 201–212]
+  E --> R[Nemotron reviewer\ncommentary only]
+```
+
+The simulator uses common random numbers, so a candidate and its parent face the same incidents. The gate is the evaluator of record: model calls can order the whitelisted edits, but cannot score or approve them. The ablation removes each kept edit from the final policy and retains it only when its removal makes the exam worse or less safe.
+
+## What runs where
+
+- `factory/engine.py` is the deterministic digital twin, audit, gate, prune, and exam.
+- `factory/crusoe.py` calls **Crusoe Managed Inference** with `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B` for the planner and reviewer.
+- `factory/vision.py` calls Crusoe with `nvidia/NVIDIA-Nemotron-3.5-Super-VL` for camera findings and evidence verification.
+- `factory/server.py` exposes the replay and API. With no key it replays recorded evidence or runs the rule-based auditor; no live call is required for the demo.
+- The browser renders a 14.2M-splat plant-room scan and overlays robots, cameras, and work orders. The UI visualizes the team’s decisions; it is not the product’s main feature.
 
 ## Run
 
 ```bash
 python3 -m unittest discover -s factory -p 'test_*.py'
-CRUSOE_API_KEY=... python3 -m factory.server      # http://127.0.0.1:5188 ; ?demo=1 plays the 1-minute demo
+CRUSOE_API_KEY=... python3 -m factory.server
 ```
 
-Without a key the server replays recorded Nemotron calls from `factory/evidence/`.
+Open `http://127.0.0.1:5188`; `?demo=1` plays the short replay. Secrets are injected with `hsec` for live work and are never stored in the repository.
 
-See [`factory/README.md`](factory/README.md) for the loop, the gate and the evidence files.
+## Evidence and limitations
 
-## Credits and rights
+- Exact recorded calls, model IDs, split seeds, gate verdicts, and exam numbers: [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+- Architecture and data flow: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- Criterion-by-criterion judging map: [`docs/JUDGING.md`](docs/JUDGING.md).
+- The factory is a synthetic simulator over a real scan. Its rates and score gains are modeled evaluator behavior, not claims about a physical plant.
+- Vision findings are real recorded model outputs, but they do **not** change the simulator score; the score comes from the deterministic maintenance twin.
+- The scan is streamed from SuperSplat at runtime and is not bundled here. See the rights note in `factory/README.md`.
 
-- Scene: SuperSplat scene `8be1404d` (`merged_room_v2_3x`), streamed from the SuperSplat CDN at runtime; not bundled in this repo.
-- Navigation grid and surveyed equipment positions (`factory/static/scene-map.js`) derived from Phylax, a teammate's project, with permission.
-- `@playcanvas/supersplat-viewer` and `playcanvas` (MIT), vendored in `factory/static/vendor/`.
+## Credits
+
+The scene is SuperSplat scene `8be1404d` (`merged_room_v2_3x`). Navigation and surveyed equipment positions derive from teammate Phylax with permission. Vendored PlayCanvas/SuperSplat components retain their MIT notices.
