@@ -25,8 +25,9 @@
         <div class="cams" id="cams"></div>
       </section>
       <section class="panel hud">
-        <div id="measures" hidden></div>
-        <div class="ptitle"><span>Benchmarks per generation</span><span class="small">12 unseen runs</span></div>
+        <div class="ptitle"><span>Sensors</span><span class="small">11 live streams · click for history</span></div>
+        <div id="measures"></div>
+        <div class="ptitle second"><span>Benchmarks per generation</span><span class="small">12 unseen runs</span></div>
         <div id="bench"></div>
         <div class="ptitle second"><span>What carries to the next generation</span><span class="small">exam pts lost if removed</span></div>
         <div id="ledger"></div>
@@ -54,6 +55,7 @@
     </footer>
 
     <div id="caption"></div>
+    <div id="drawer" class="hud"><button id="drawer-x" class="ghost-btn">Close</button><div id="drawer-body"></div></div>
     <button id="hud-restore" class="ghost-btn">Show HUD (H)</button>
     <div id="loading"><div><p id="loading-text">Loading plant room scan</p><div class="bar"><b id="loading-bar"></b></div></div></div>
     <script>window.__errs=[];window.addEventListener('error',e=>window.__errs.push({message:e.message,filename:e.filename,lineno:e.lineno}));window.addEventListener('unhandledrejection',e=>window.__errs.push({message:String(e.reason)}));</script>

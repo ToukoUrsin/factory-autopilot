@@ -337,7 +337,7 @@ const CCTV = ['S01', 'S02', 'S04', 'S05', 'S07', 'S08'].map((sid, i) => ({ id: `
 const visionLog = [];
 function buildCams() {
   $('cams').innerHTML = CCTV.map((c) => `<div class="cam" data-id="${c.id}"><img alt=""><svg viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg><span class="lbl">${c.id} · ${c.station}</span><span class="st">offline</span></div>`).join('');
-  $('cams').querySelectorAll('.cam').forEach((el) => el.addEventListener('click', () => focusStation(CCTV.find((c) => c.id === el.dataset.id).station)));
+  $('cams').querySelectorAll('.cam').forEach((el) => el.addEventListener('click', () => { const c = CCTV.find((x) => x.id === el.dataset.id); focusStation(c.station); openCam(c); }));
 }
 const isIssue = (d) => ['warn', 'crit'].includes(d.severity) || (d.severity === 'info' && d.issue && !/^(none|no |ignore)/i.test(d.issue));
 const isOverlay = (d) => /overlay|robot arm|sensor beacon|handwheel/i.test(d.label);
@@ -365,6 +365,7 @@ async function captureCams() {
 }
 async function detectCams() {
   const cache = params.has('fresh') ? {} : await fetch('/api/detections').then((r) => r.json()).catch(() => ({}));
+  state.verify = Object.fromEntries(Object.entries(cache).filter(([k]) => k.startsWith('verify-')).map(([k, v]) => [k.slice(7), v]));
   const run = async (c) => {
     c.state = 'scanning'; drawCam(c); $('vision-status').textContent = 'Nemotron 3.5 Super VL · scanning';
     let res = cache[c.id];
@@ -388,14 +389,15 @@ async function detectCams() {
 
 // ---------- measurements + benchmarks ----------
 function buildMeasures() {
-  $('measures').innerHTML = STATION_IDS.map((id) => `<div class="m" data-id="${id}"><span>${id} ${STATION_MAP[id].object.component_name.split(' ')[0].toLowerCase()}</span><b>—</b><div class="t"><i></i></div></div>`).join('');
-  $('measures').querySelectorAll('.m').forEach((el) => el.addEventListener('click', () => focusStation(el.dataset.id)));
+  $('measures').innerHTML = STATION_IDS.map((id) => `<div class="m" data-id="${id}"><span>${id} ${STATION_MAP[id].object.component_name.split(' ')[0].toLowerCase()}</span><b>—</b><svg viewBox="0 0 100 16" preserveAspectRatio="none"></svg></div>`).join('');
+  $('measures').querySelectorAll('.m').forEach((el) => el.addEventListener('click', () => { focusStation(el.dataset.id); openSensors(el.dataset.id); }));
 }
 function drawMeasures() {
   $('measures').querySelectorAll('.m').forEach((el) => {
     const id = el.dataset.id, vals = Object.values(state.values[id] || {}); if (!vals.length) return;
     const v = vals.reduce((a, b) => (b.frac > a.frac ? b : a));
-    el.querySelector('i').style.width = Math.max(2, Math.min(100, v.frac * 100)).toFixed(0) + '%';
+    const tel = state.run.telemetry || state.data.final.telemetry, s0 = tel.streams.find((x) => x.station_id === id && x.label === v.label), n = Math.max(2, Math.floor(state.simT * tel.ticks_per_day) + 1);
+    if (s0) { const lo = Math.min(s0.normal, s0.alarm), hi = Math.max(s0.normal, s0.alarm), span = (hi - lo) || 1, from = Math.max(0, n - 80); let d = ''; for (let i = from; i < n; i++) d += `${i === from ? 'M' : 'L'}${((i - from) / 79 * 100).toFixed(1)},${(15 - Math.max(0, Math.min(1, (s0.values[i] - lo + span * .25) / (span * 1.5))) * 14).toFixed(1)}`; el.querySelector('svg').innerHTML = `<path d="${d}" fill="none" stroke="${v.level === 'ok' ? '#9a9a9a' : '#ff5a1f'}" stroke-width="1.2" vector-effect="non-scaling-stroke"/>`; }
     const txt = `${v.v} ${v.unit}`; if (el.querySelector('b').textContent !== txt) el.querySelector('b').textContent = txt;
     el.className = `m ${stationLevel(id)}${state.focus === id ? ' focus' : ''}`;
   });
@@ -439,6 +441,7 @@ function buildArch() {
   for (const t of TOOLS) svg += `<g class="tool" data-gen="${t.gen}" data-rej="${t.rejected ? 1 : 0}"><rect x="${t.x - 56}" y="${t.y - 11}" width="112" height="22" rx="11"/><text x="${t.x}" y="${t.y + 3}">${t.label}</text></g>`;
   for (const n of NODES) { const w = n.sub ? 116 : 70, h = n.sub ? 32 : 24; svg += `<g class="n" data-id="${n.id}" data-gen="${n.gen}"><rect x="${n.x - w / 2}" y="${n.y - h / 2}" width="${w}" height="${h}" rx="8"/><text x="${n.x}" y="${n.y + (n.sub ? -2 : 4)}">${n.label}</text>${n.sub ? `<text class="s" x="${n.x}" y="${n.y + 10}">${n.sub}</text>` : ''}</g>`; }
   $('arch').innerHTML = svg;
+  $('arch').querySelectorAll('.n').forEach((el) => el.addEventListener('click', () => openAgent(el.dataset.id)));
 }
 function drawGens() {
   const gens = state.data.generations;
@@ -478,6 +481,7 @@ function buildLedger() {
 }
 
 // ---------- Nemotron pilot: discrete drive commands ----------
+const pilotLog = [];
 const UNITS_PER_M = 3; // the scan is scaled 3x
 function freeRay(x, z, deg) {
   const r = deg * Math.PI / 180; let d = 0;
@@ -494,6 +498,7 @@ async function pilotDrive(robot, sid, label) {
     const bearing = ((Math.atan2(dx, dz) * 180 / Math.PI - robot.heading + 540) % 360) - 180;
     const rays = Object.fromEntries([-90, -45, 0, 45, 90].map((a) => [a, freeRay(p.x, p.z, robot.heading + a)]));
     const res = await fetch('/api/pilot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ robot: robot.id, goal: label || sid, bearing, distance: dist, rays, last }) }).then((r) => r.json()).catch(() => ({ ok: false }));
+    pilotLog.unshift({ robot: robot.id, goal: label || sid, bearing: Math.round(bearing), distance: dist.toFixed(1), rays, res, at: new Date().toLocaleTimeString() }); pilotLog.length = Math.min(pilotLog.length, 12);
     if (!res.ok) { robot.pilotText = 'pilot unavailable · route planner'; robot.piloted = false; sendArm(robot, sid); return false; }
     robot.pilotText = res.commands.join(' ▸ '); flashNode(robot.id); flashNode('PILOT');
     for (const cmd of res.commands) {
@@ -548,13 +553,59 @@ async function visionWorkOrder() {
   cam.frame = frame; cam.state = 'scanning'; drawCam(cam);
   const cache = await fetch('/api/detections').then((r) => r.json()).catch(() => ({}));
   const res = (!params.has('fresh') && cache[`verify-${cam.id}`]) || await fetch('/api/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ camera: cam.id, station: sid, finding: text, image: frame }) }).then((r) => r.json()).catch(() => ({ ok: false }));
-  cam.state = 'live'; drawCam(cam); flashNode('VISION');
+  cam.state = 'live'; drawCam(cam); flashNode('VISION'); (state.verify ||= {})[cam.id] = res;
   const ok = res.ok && res.arm_on_site;
   pushFeed({ day, robot: 'VISION · evidence', station_id: sid, status: ok ? 'closed' : 'evidence_gap', lvl: ok ? 'vision' : 'crit', message: ok ? `arm on site confirmed — ${res.note || 'work order closed with evidence'}` : `evidence check failed — ${res.note || res.error || 'no answer'}` });
   stations[sid].status = 'ok';
   caption(ok ? 'Work order closed with a verified evidence frame' : 'Evidence check failed: work order stays open', ok ? '' : '');
   await sleep(1600); caption('');
   state.hold = false;
+}
+
+// ---------- inspect: cameras, agents, sensors ----------
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const callMeta = (c) => c ? `${esc(c.model)} · ${c.latency_s ?? '—'} s · ${c.prompt_tokens ?? '—'} in / ${c.completion_tokens ?? '—'} out tokens${c.attempts > 1 ? ' · ' + c.attempts + ' attempts' : ''}${c.at ? ' · ' + esc(c.at) : ''}` : '';
+function openDrawer(html) { $('drawer-body').innerHTML = html; $('drawer').classList.add('on'); if (viewer) viewer.state.inputEnabled = false; }
+function closeDrawer() { $('drawer').classList.remove('on'); if (viewer) viewer.state.inputEnabled = true; }
+function openCam(c) {
+  const r = c.result, dets = r?.ok ? r.detections : [];
+  const boxes = dets.map((d) => { const [x0, y0, x1, y1] = d.box, bad = isIssue(d); return `<rect x="${x0}" y="${y0}" width="${Math.max(4, x1 - x0)}" height="${Math.max(4, y1 - y0)}" fill="none" stroke="${bad ? '#ff5a1f' : 'rgba(255,255,255,.85)'}" style="stroke-width:${bad ? 3 : 1.5}px" vector-effect="non-scaling-stroke"/>`; }).join('');
+  const labels = dets.map((d) => `<span class="blabel ${isIssue(d) ? 'bad' : ''}" style="left:${d.box[0] / 10}%;top:${d.box[1] / 10}%">${esc(d.label)}</span>`).join('');
+  const verify = state.verify?.[c.id];
+  openDrawer(`<h2>${c.id} · ${c.station} ${esc(STATION_MAP[c.station].object.component_name)}</h2><div class="sub">frame rendered from the Gaussian splat scan · labelled by Nemotron 3.5 Super VL on Crusoe</div>
+    <div class="shot"><img src="${c.frame || ''}"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none">${boxes}</svg>${labels}</div>
+    ${r?.ok ? `<div class="trace"><span class="k">MODEL SUMMARY</span><div>${esc(r.summary)}</div><div class="meta" style="margin-top:6px">route to planner: ${r.route_to_planner ? 'yes' : 'no'} · ${callMeta(r.call)}</div></div>
+    <table><tr><th>Label</th><th>Severity</th><th>Issue</th><th>Box (0–1000)</th></tr>${dets.map((d) => `<tr><td>${esc(d.label)}${isOverlay(d) ? ' <span class="meta">(our overlay, ignored)</span>' : ''}</td><td><span class="sev ${d.severity}">${d.severity}</span></td><td>${esc(d.issue || '—')}</td><td class="meta">${d.box.map((v) => Math.round(v)).join(', ')}</td></tr>`).join('')}</table>` : `<div class="trace">No detection yet: ${esc(r?.error || c.state)}</div>`}
+    ${verify ? `<h3>Evidence check after the work order</h3><div class="trace">arm on site: <b>${verify.arm_on_site ? 'yes' : 'no'}</b> — ${esc(verify.note)}<div class="meta">${callMeta(verify.call)}</div></div>` : ''}`);
+}
+function openSensors(focus) {
+  const tel = state.run.telemetry || state.data.final.telemetry, n = Math.max(2, Math.floor(state.simT * tel.ticks_per_day) + 1);
+  const rows = tel.streams.map((s0) => {
+    const lo = Math.min(s0.normal, s0.alarm), hi = Math.max(s0.normal, s0.alarm), span = (hi - lo) || 1, y = (v) => 40 - Math.max(0, Math.min(1, (v - lo + span * .25) / (span * 1.5))) * 38;
+    let d = ''; const step = Math.max(1, Math.floor(s0.values.length / 300)); for (let i = 0; i < n; i += step) d += `${i ? 'L' : 'M'}${(i / (s0.values.length - 1) * 600).toFixed(1)},${y(s0.values[i]).toFixed(1)}`;
+    const v = s0.values[Math.min(n - 1, s0.values.length - 1)];
+    return `<tr style="${s0.station_id === focus ? 'background:rgba(255,90,31,.12)' : ''}"><td>${s0.station_id}</td><td>${esc(s0.label)}</td><td><b>${v}</b> ${esc(s0.unit)}</td><td class="meta">normal ${s0.normal} · alarm ${s0.alarm}</td><td style="width:50%"><svg viewBox="0 0 600 42" preserveAspectRatio="none" style="width:100%;height:42px"><line x1="0" x2="600" y1="${y(s0.alarm)}" y2="${y(s0.alarm)}" stroke="#ff5a1f" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="#ccc" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg></td></tr>`;
+  }).join('');
+  openDrawer(`<h2>Sensors</h2><div class="sub">11 simulated streams, one reading every 6 hours · day ${Math.floor(state.simT)} of 180 · dashed line = alarm level</div><table><tr><th>Station</th><th>Stream</th><th>Now</th><th>Limits</th><th>History</th></tr>${rows}</table>`);
+}
+function openAgent(id) {
+  const d = state.data, ev = (state.run?.events || []).slice(0, state.idx);
+  if (id === 'ALEX') {
+    const gens = d.generations.slice(1).map((g, i) => `<div class="trace"><span class="k">GENERATION N+${i + 1} · audit of training runs → Nemotron 3 Super picks the next change</span>
+      <pre>audit: ${esc(JSON.stringify(g.audit))}\nrule-based order: ${esc((g.proposal?.auditor_order || []).join(', '))}\nnemotron order:   ${esc((g.proposal?.model_order || []).join(', '))}\nrationale: ${esc(g.proposal?.rationale)}\nexpected effect: ${esc(g.proposal?.expected_effect)}\npicked: ${esc(g.proposal?.picked)}${g.proposal?.changed_pick ? ' (changed the rule-based pick)' : ' (same as rule-based pick)'}\ngate on 12 unseen runs: ${esc(g.reason)}</pre><div class="meta">${callMeta(g.proposal?.call)}</div></div>`).join('');
+    openDrawer(`<h2>Planner · Nemotron 3 Super</h2><div class="sub">chooses which change to test next; the gate on unseen runs decides what is kept</div>${gens}<h3>Reviewer after the exam</h3><div class="trace">${esc(d.critique?.text)}<div class="meta">${callMeta(d.critique?.call)}</div></div>`);
+  } else if (id === 'VISION' || id === 'CAMS') {
+    openDrawer(`<h2>Vision · Nemotron 3.5 Super VL</h2><div class="sub">one call per camera frame; issues open work orders</div>${CCTV.map((c) => `<div class="trace" style="cursor:pointer" data-cam="${c.id}"><span class="k">${c.id} · ${c.station}</span><div>${esc(c.result?.summary || c.result?.error || c.state)}</div><div class="meta">${(c.result?.detections || []).map((x) => esc(x.label)).join(' · ')}<br>${callMeta(c.result?.call)}</div></div>`).join('')}`);
+    document.querySelectorAll('#drawer [data-cam]').forEach((el) => el.addEventListener('click', () => openCam(CCTV.find((c) => c.id === el.dataset.cam))));
+  } else if (id === 'PILOT' || id.startsWith('ROVER')) {
+    openDrawer(`<h2>Pilot · Nemotron 3.5 Lightning</h2><div class="sub">egocentric state in → drive commands out · the browser refuses moves into obstacles</div>${pilotLog.length ? pilotLog.map((p) => `<div class="trace"><span class="k">${esc(p.robot)} → ${esc(p.goal)} · ${esc(p.at)}</span><pre>in:  bearing ${p.bearing}° · distance ${p.distance} m · free m ${Object.entries(p.rays).map(([a, v]) => a + ':' + v.toFixed(1)).join(' ')}\nout: ${p.res.ok ? esc(p.res.commands.join(' ▸ ')) + '\nwhy: ' + esc(p.res.reason) : 'failed: ' + esc(p.res.error || 'no answer')}</pre><div class="meta">${callMeta(p.res.call)}</div></div>`).join('') : '<div class="trace">No pilot calls yet.</div>'}`);
+  } else if (id === 'NANO') {
+    const v = ev.filter((e) => e.robot === 'NANO').slice(-12).reverse();
+    openDrawer(`<h2>Verifier · Nemotron Nano role</h2><div class="sub">added by the team in N+1 · in the six-month twin its sign-offs are simulated, not live calls</div>${v.length ? v.map((e) => `<div class="trace"><span class="k">day ${e.day} · ${e.station_id}</span><div>${esc(e.message)}</div></div>`).join('') : '<div class="trace">Run the replay to see sign-offs and rejections.</div>'}`);
+  } else if (id === 'DISPATCH' || id.startsWith('ARM')) {
+    const w = ev.filter((e) => ['work_order', 'dispatch', 'action', 'closed', 'unsafe', 'blocked'].includes(e.status) && (!id.startsWith('ARM') || e.robot === id || e.status === 'work_order')).slice(-14).reverse();
+    openDrawer(`<h2>${id === 'DISPATCH' ? 'Dispatch · work orders' : id}</h2><div class="sub">from the six-month replay${id.startsWith('ARM') ? ' · ' + esc(arms[id]?.task) + ' at ' + esc(arms[id]?.station) : ''}</div>${w.length ? w.map((e) => `<div class="trace"><span class="k">day ${e.day} · ${e.robot} · ${e.station_id}</span><div>${esc(e.message)}</div></div>`).join('') : '<div class="trace">Run the replay to see work orders.</div>'}`);
+  } else if (id === 'SENSOR') openSensors();
 }
 
 // ---------- 1-minute demo ----------
@@ -664,13 +715,14 @@ function play() {
 }
 function setHud(on) { document.body.classList.toggle('hud-off', !on); }
 $('run').addEventListener('click', play);
+$('drawer-x').addEventListener('click', closeDrawer);
 $('hud-toggle').addEventListener('click', () => setHud(false));
 $('hud-restore').addEventListener('click', () => setHud(true));
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   if (e.key === 'h' || e.key === 'H') setHud(document.body.classList.contains('hud-off'));
   if (e.key === ' ') { e.preventDefault(); play(); }
-  if (e.key === 'Escape') overview();
+  if (e.key === 'Escape') { if ($('drawer').classList.contains('on')) closeDrawer(); else overview(); }
 });
 document.querySelectorAll('[data-policy]').forEach((b) => b.addEventListener('click', () => {
   state.policy = b.dataset.policy; document.querySelectorAll('[data-policy]').forEach((x) => x.classList.toggle('on', x === b));
