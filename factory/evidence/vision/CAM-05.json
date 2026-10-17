@@ -1,0 +1,89 @@
+{
+ "ok": true,
+ "camera": "CAM-05",
+ "station": "S07",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 5.45,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 384,
+  "error": null,
+  "at": "2026-10-17T15:54:40-0700"
+ },
+ "at": "2026-10-17T15:54:46-0700",
+ "detections": [
+  {
+   "label": "pump",
+   "box": [
+    338.0,
+    454.0,
+    514.0,
+    827.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "vertical pipe",
+   "box": [
+    0,
+    0,
+    118.0,
+    998.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "vertical pipe",
+   "box": [
+    123.0,
+    0,
+    346.0,
+    998.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "vertical pipe",
+   "box": [
+    445.0,
+    0,
+    510.0,
+    548.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "vertical pipe",
+   "box": [
+    557.0,
+    0,
+    645.0,
+    598.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "vertical pipe",
+   "box": [
+    677.0,
+    0,
+    765.0,
+    247.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  }
+ ],
+ "summary": "No maintenance issues are visible in this frame. The pumps, pipes, and fittings appear intact with no obvious leaks, corrosion, missing guards, open panels, or trip hazards.",
+ "route_to_planner": false
+}

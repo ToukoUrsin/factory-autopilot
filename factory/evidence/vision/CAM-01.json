@@ -1,0 +1,89 @@
+{
+ "ok": true,
+ "camera": "CAM-01",
+ "station": "S01",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 5.73,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 392,
+  "error": null,
+  "at": "2026-10-17T15:54:26-0700"
+ },
+ "at": "2026-10-17T15:54:32-0700",
+ "detections": [
+  {
+   "label": "red handwheel assembly",
+   "box": [
+    442.0,
+    65.0,
+    552.0,
+    331.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "pump or motor unit",
+   "box": [
+    368.0,
+    159.0,
+    514.0,
+    409.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "gauge on panel",
+   "box": [
+    624.0,
+    84.0,
+    686.0,
+    207.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "control panel",
+   "box": [
+    0,
+    0,
+    170.0,
+    207.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "large red equipment",
+   "box": [
+    778.0,
+    0,
+    958.0,
+    517.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "orange robot arm overlay",
+   "box": [
+    366.0,
+    414.0,
+    574.0,
+    763.0
+   ],
+   "issue": "ignore, overlay equipment",
+   "severity": "none"
+  }
+ ],
+ "summary": "No actionable issues visible in this frame. All machinery, gauges, panels, and floor appear normal. Ignore orange robot arm and black base as overlay equipment.",
+ "route_to_planner": false
+}

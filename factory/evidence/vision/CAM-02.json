@@ -1,0 +1,78 @@
+{
+ "ok": true,
+ "camera": "CAM-02",
+ "station": "S02",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 5.72,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 386,
+  "error": null,
+  "at": "2026-10-17T15:54:26-0700"
+ },
+ "at": "2026-10-17T15:54:32-0700",
+ "detections": [
+  {
+   "label": "red machine with cable",
+   "box": [
+    0,
+    54.0,
+    558.0,
+    1000
+   ],
+   "issue": "thick grey cable routed across the top edge, partially resting on the machine, potential snag/trip hazard",
+   "severity": "info"
+  },
+  {
+   "label": "valve assembly",
+   "box": [
+    450.0,
+    362.0,
+    604.0,
+    595.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "vertical ladder",
+   "box": [
+    542.0,
+    54.0,
+    622.0,
+    853.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "floor",
+   "box": [
+    500.0,
+    177.0,
+    1000,
+    1000
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "overhead structure",
+   "box": [
+    650.0,
+    0,
+    1000,
+    310.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  }
+ ],
+ "summary": "No leaks, corrosion, missing guards, open panels, or unreadable gauges are visible. The only observation is a grey cable resting across the top of the red machine, which could present a snag or trip hazard and should be rerouted or secured.",
+ "route_to_planner": true
+}

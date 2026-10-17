@@ -1,0 +1,302 @@
+{
+ "schema": "factory-live-v2",
+ "ts": "2026-10-17T21:21:47+00:00",
+ "provider": "crusoe",
+ "base_url": "https://api.inference.crusoecloud.com/v1",
+ "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+ "evaluator": "deterministic simulator: audit, gate, prune and exam make no model calls",
+ "splits": {
+  "train": [
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18
+  ],
+  "gate": [
+   101,
+   102,
+   103,
+   104,
+   105,
+   106,
+   107,
+   108,
+   109,
+   110,
+   111,
+   112
+  ],
+  "exam": [
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   207,
+   208,
+   209,
+   210,
+   211,
+   212
+  ]
+ },
+ "generations": [
+  {
+   "step": 1,
+   "edit": "verifier_role",
+   "kind": "team",
+   "proposer": "nemotron",
+   "auditor_order": [
+    "verifier_role",
+    "dual_confirmation",
+    "deadline_sweep",
+    "fast_track",
+    "reorder_buffer"
+   ],
+   "model_order": [
+    "verifier_role"
+   ],
+   "picked": "verifier_role",
+   "changed_pick": false,
+   "why": "Targets the highest weighted failure evidence_gap which dominates audit score",
+   "expected_effect": "Reduces evidence_gap failures by improving evidence validation",
+   "call": {
+    "role": "planner",
+    "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+    "thinking": "low",
+    "ok": true,
+    "attempts": 2,
+    "latency_s": 5.09,
+    "finish_reason": "stop",
+    "prompt_tokens": 553,
+    "completion_tokens": 65,
+    "error": null,
+    "at": "2026-10-17T14:21:24-0700"
+   },
+   "accepted": true,
+   "reason": "accepted: +11.5 on unseen runs, 11 wins / 0 losses, no safety regression",
+   "gate": {
+    "mean_delta": 11.5,
+    "wins": 11,
+    "losses": 0,
+    "unsafe_before": 15,
+    "unsafe_after": 0
+   }
+  },
+  {
+   "step": 2,
+   "edit": "deadline_sweep",
+   "kind": "playbook",
+   "proposer": "nemotron",
+   "auditor_order": [
+    "deadline_sweep",
+    "fast_track",
+    "reorder_buffer"
+   ],
+   "model_order": [
+    "deadline_sweep"
+   ],
+   "picked": "deadline_sweep",
+   "changed_pick": false,
+   "why": "Deadline sweep directly targets overdue work orders, which have the highest weighted failure impact.",
+   "expected_effect": "Should reduce overdue failures by catching and prioritizing aging work orders.",
+   "call": {
+    "role": "planner",
+    "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+    "thinking": "low",
+    "ok": true,
+    "attempts": 1,
+    "latency_s": 4.65,
+    "finish_reason": "stop",
+    "prompt_tokens": 495,
+    "completion_tokens": 130,
+    "error": null,
+    "at": "2026-10-17T14:21:30-0700"
+   },
+   "accepted": true,
+   "reason": "accepted: +12.0 on unseen runs, 12 wins / 0 losses, no safety regression",
+   "gate": {
+    "mean_delta": 12.0,
+    "wins": 12,
+    "losses": 0,
+    "unsafe_before": 0,
+    "unsafe_after": 0
+   }
+  },
+  {
+   "step": 3,
+   "edit": "reorder_buffer",
+   "kind": "tool",
+   "proposer": "nemotron",
+   "auditor_order": [
+    "reorder_buffer",
+    "fast_track"
+   ],
+   "model_order": [
+    "reorder_buffer",
+    "fast_track"
+   ],
+   "picked": "reorder_buffer",
+   "changed_pick": false,
+   "why": "Reorder buffer directly targets the highest weighted failure class (stockout) without introducing safety risks.",
+   "expected_effect": "Reduce stockout failures, lowering overall weighted score.",
+   "call": {
+    "role": "planner",
+    "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+    "thinking": "low",
+    "ok": true,
+    "attempts": 1,
+    "latency_s": 3.79,
+    "finish_reason": "stop",
+    "prompt_tokens": 500,
+    "completion_tokens": 106,
+    "error": null,
+    "at": "2026-10-17T14:21:34-0700"
+   },
+   "accepted": true,
+   "reason": "accepted: +1.0 on unseen runs, 9 wins / 3 losses, no safety regression",
+   "gate": {
+    "mean_delta": 1.0,
+    "wins": 9,
+    "losses": 3,
+    "unsafe_before": 0,
+    "unsafe_after": 0
+   }
+  },
+  {
+   "step": 4,
+   "edit": "fast_track",
+   "kind": "playbook",
+   "proposer": "nemotron",
+   "auditor_order": [
+    "fast_track"
+   ],
+   "model_order": [
+    "fast_track"
+   ],
+   "picked": "fast_track",
+   "changed_pick": false,
+   "why": "Fast-track high-severity work removes the second check, which should close jobs faster and improve slow_response score while keeping safety checks minimal.",
+   "expected_effect": "Expected to reduce slow_response failures by speeding up high‑severity task completion.",
+   "call": {
+    "role": "planner",
+    "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+    "thinking": "low",
+    "ok": true,
+    "attempts": 1,
+    "latency_s": 2.94,
+    "finish_reason": "stop",
+    "prompt_tokens": 499,
+    "completion_tokens": 85,
+    "error": null,
+    "at": "2026-10-17T14:21:38-0700"
+   },
+   "accepted": false,
+   "reason": "rejected: safety regression (0 → 15 unsafe actions)",
+   "gate": {
+    "mean_delta": -9.2,
+    "wins": 1,
+    "losses": 11,
+    "unsafe_before": 0,
+    "unsafe_after": 15
+   }
+  }
+ ],
+ "kept_edits": [
+  "verifier_role",
+  "deadline_sweep",
+  "reorder_buffer"
+ ],
+ "accepted_policy": {
+  "generation": 3,
+  "name": "N+3 reorder automation with 3-day supplier buffer",
+  "deadline_sweep": true,
+  "dual_confirmation": false,
+  "reorder_buffer_days": 3,
+  "verifier_role": true,
+  "fast_track": false
+ },
+ "exam_before": {
+  "score": 66.5,
+  "per_seed": [
+   63.9,
+   48.2,
+   73.2,
+   66.8,
+   74.3,
+   68.9,
+   72.5,
+   61.4,
+   82.5,
+   58.6,
+   66.8,
+   61.4
+  ],
+  "unsafe_actions": 21,
+  "blocked": 0,
+  "overdue": 25,
+  "evidence_gaps": 46,
+  "stockouts": 18
+ },
+ "exam_after": {
+  "score": 92.8,
+  "per_seed": [
+   92.6,
+   90.9,
+   93.0,
+   88.4,
+   94.4,
+   95.1,
+   93.0,
+   96.2,
+   96.2,
+   90.9,
+   90.5,
+   92.3
+  ],
+  "unsafe_actions": 0,
+  "blocked": 21,
+  "overdue": 0,
+  "evidence_gaps": 15,
+  "stockouts": 8
+ },
+ "critique": {
+  "text": "The kept edits together lifted the score from 66.5 to 92.8, eliminated unsafe actions and overdue items, cut evidence gaps from 46 to 15 and stockouts from 18 to 8; the nano verifier added 11.5 points, the deadline sweep added 12.0 points, and the reorder automation contributed 1.0 point, with no safety regression in any of them. The rejected fast‑track edit shows that skipping a second check can turn a clean safety record into 15 unsafe actions, highlighting the danger of bypassing verification. A remaining risk is the persistence of 21 blocked actions after the changes, suggesting that some workflow constraints still impede execution.",
+  "call": {
+   "role": "reviewer",
+   "model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+   "thinking": "low",
+   "ok": true,
+   "attempts": 1,
+   "latency_s": 6.5,
+   "finish_reason": "stop",
+   "prompt_tokens": 380,
+   "completion_tokens": 206,
+   "error": null,
+   "at": "2026-10-17T14:21:41-0700"
+  }
+ },
+ "calls": {
+  "total": 5,
+  "ok": 5,
+  "attempts": 6,
+  "latency_s": 22.97,
+  "prompt_tokens": 2427,
+  "completion_tokens": 592,
+  "errors": []
+ },
+ "limits": [
+  "The factory is a synthetic simulator: each edit's effect is a modelled mechanism, so the gains show the loop selects correctly, not that these rates hold in a real plant.",
+  "Nemotron only orders whitelisted edits and writes the review; the audit, gate, prune and exam are deterministic and make no model calls.",
+  "The scene backdrop is the public poster image of SuperSplat scene 8be1404d (merged_room_v2_3x, azha007); no splat bytes are bundled until redistribution rights are confirmed."
+ ],
+ "replay": {
+  "reproduced": true,
+  "differences": []
+ }
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Factory Autopilot · Plant room</title>
+    <link rel="stylesheet" href="/vendor/splat-viewer.css" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="splat" aria-label="Gaussian splat scan of the plant room"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div id="tags"></div>
+
+    <header class="topbar hud">
+      <div class="title">Factory Autopilot <span>· plant room, run by Nemotron agents on Crusoe</span></div>
+      <div class="spacer"></div>
+      <span id="clock">Day 0</span>
+      <button id="hud-toggle" class="ghost-btn" title="Hide overlays (H)">Hide HUD</button>
+    </header>
+
+    <aside class="col hud-group">
+      <section class="panel hud">
+        <div class="ptitle"><span>Cameras</span><span class="small" id="vision-status">Nemotron 3.5 Super VL</span></div>
+        <div class="cams" id="cams"></div>
+      </section>
+      <section class="panel hud">
+        <div class="ptitle"><span>Measurements</span><span class="small">live sensors</span></div>
+        <div id="measures"></div>
+        <div class="ptitle second"><span>Benchmarks per generation</span><span class="small">12 unseen runs</span></div>
+        <div id="bench"></div>
+      </section>
+      <section class="panel hud grow">
+        <div class="ptitle"><span>Agents and sub-agents</span><span class="gens" id="gens"></span></div>
+        <svg id="arch" viewBox="0 0 440 250"></svg>
+        <div class="ptitle second"><span>What carries to the next generation</span><span class="small">exam pts lost if removed</span></div>
+        <div id="ledger"></div>
+        <div class="gen-note" id="gen-note"></div>
+      </section>
+    </aside>
+
+    <section class="feed hud">
+      <div class="ptitle"><span>Alerts</span><span class="small" id="feed-count">0 active</span></div>
+      <div id="event-log"></div>
+    </section>
+
+    <footer class="dock hud">
+      <button id="run" class="run"><span>▶ Run six months</span></button>
+      <div class="policy"><button data-policy="baseline">Team N</button><button data-policy="learned" id="learned-btn" class="on">Team N+3</button></div>
+      <div class="timeline"><div class="track"><b id="progress"></b><div id="ticks"></div></div></div>
+      <span class="small" id="day-label">0 / 180 days</span>
+    </footer>
+
+    <div id="caption"></div>
+    <button id="hud-restore" class="ghost-btn">Show HUD (H)</button>
+    <div id="loading"><div><p id="loading-text">Loading plant room scan</p><div class="bar"><b id="loading-bar"></b></div></div></div>
+    <script>window.__errs=[];window.addEventListener('error',e=>window.__errs.push({message:e.message,filename:e.filename,lineno:e.lineno}));window.addEventListener('unhandledrejection',e=>window.__errs.push({message:String(e.reason)}));</script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

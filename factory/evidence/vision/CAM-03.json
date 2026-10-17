@@ -1,0 +1,78 @@
+{
+ "ok": true,
+ "camera": "CAM-03",
+ "station": "S04",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 7.48,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 379,
+  "error": null,
+  "at": "2026-10-17T15:54:33-0700"
+ },
+ "at": "2026-10-17T15:54:40-0700",
+ "detections": [
+  {
+   "label": "door with warning sign",
+   "box": [
+    26.0,
+    12.0,
+    358.0,
+    894.0
+   ],
+   "issue": "door closed, sign intact",
+   "severity": "none"
+  },
+  {
+   "label": "electrical panel",
+   "box": [
+    468.0,
+    105.0,
+    662.0,
+    405.0
+   ],
+   "issue": "panel closed, no visible damage",
+   "severity": "none"
+  },
+  {
+   "label": "white pipes with green labels",
+   "box": [
+    580.0,
+    0,
+    1000,
+    978.0
+   ],
+   "issue": "insulation intact, labels legible",
+   "severity": "none"
+  },
+  {
+   "label": "pump assembly",
+   "box": [
+    598.0,
+    490.0,
+    1000,
+    998.0
+   ],
+   "issue": "no obvious leaks or corrosion",
+   "severity": "none"
+  },
+  {
+   "label": "floor around equipment",
+   "box": [
+    338.0,
+    660.0,
+    732.0,
+    998.0
+   ],
+   "issue": "dry, no trip hazards visible",
+   "severity": "none"
+  }
+ ],
+ "summary": "No actionable issues detected in this frame. All equipment appears intact and no leaks, corrosion, obstructions, missing guards, trip hazards, open panels, or unreadable gauges are visible.",
+ "route_to_planner": false
+}

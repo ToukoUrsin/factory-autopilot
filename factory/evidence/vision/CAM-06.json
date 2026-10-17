@@ -1,0 +1,89 @@
+{
+ "ok": true,
+ "camera": "CAM-06",
+ "station": "S08",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 4.37,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 285,
+  "error": null,
+  "at": "2026-10-17T15:54:40-0700"
+ },
+ "at": "2026-10-17T15:54:45-0700",
+ "detections": [
+  {
+   "label": "pump",
+   "box": [
+    250.0,
+    78.0,
+    490.0,
+    547.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "valve",
+   "box": [
+    490.0,
+    303.0,
+    545.0,
+    394.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "pipework",
+   "box": [
+    0,
+    0,
+    245.0,
+    999.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "electrical panel",
+   "box": [
+    455.0,
+    0,
+    570.0,
+    222.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "handwheel",
+   "box": [
+    0,
+    0,
+    125.0,
+    178.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  },
+  {
+   "label": "floor marking",
+   "box": [
+    375.0,
+    386.0,
+    610.0,
+    599.0
+   ],
+   "issue": "none visible",
+   "severity": "none"
+  }
+ ],
+ "summary": "No maintenance issues visible in this frame.",
+ "route_to_planner": false
+}

@@ -1,0 +1,89 @@
+{
+ "ok": true,
+ "camera": "CAM-04",
+ "station": "S05",
+ "call": {
+  "role": "vision",
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "thinking": "off",
+  "ok": true,
+  "attempts": 1,
+  "latency_s": 7.42,
+  "finish_reason": "stop",
+  "prompt_tokens": 468,
+  "completion_tokens": 374,
+  "error": null,
+  "at": "2026-10-17T15:54:33-0700"
+ },
+ "at": "2026-10-17T15:54:40-0700",
+ "detections": [
+  {
+   "label": "electrical panel",
+   "box": [
+    586.0,
+    151.0,
+    672.0,
+    407.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "pipework assembly",
+   "box": [
+    0,
+    0,
+    153.0,
+    999.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "cabinet",
+   "box": [
+    273.0,
+    178.0,
+    595.0,
+    525.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "gauge",
+   "box": [
+    146.0,
+    784.0,
+    198.0,
+    936.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "red toolbox",
+   "box": [
+    700.0,
+    651.0,
+    836.0,
+    791.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  },
+  {
+   "label": "hose",
+   "box": [
+    502.0,
+    517.0,
+    577.0,
+    620.0
+   ],
+   "issue": "none",
+   "severity": "none"
+  }
+ ],
+ "summary": "No visible leaks, corrosion, obstructions, missing guards, trip hazards, open panels, or unreadable gauges.",
+ "route_to_planner": false
+}
