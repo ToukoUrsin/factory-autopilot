@@ -18,6 +18,10 @@ The recorded Crusoe run and a local deterministic replay agree. The exam split i
 
 The gate kept `verifier_role` (+11.5 mean points, 11 wins/0 losses), `deadline_sweep` (+12.0, 12/0), and `reorder_buffer` (+1.0, 9/3). It rejected `fast_track` because unsafe actions rose from 0 to 15. The final ablation is in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
+## One-minute demo
+
+Watch the recorded walkthrough: [docs/demo-60s.mp4](docs/demo-60s.mp4). Run the same scripted sequence in the browser with [`?demo=1`](http://127.0.0.1:5188/?demo=1): baseline incidents, accepted and rejected generations, leave-one-out ablation, then the learned replay. The browser also continuously sends ROVER-1 to stations through the pilot and can turn a routed camera finding into a work order.
+
 ## How the loop learns
 
 ```mermaid
@@ -39,6 +43,8 @@ The simulator uses common random numbers, so a candidate and its parent face the
 - `factory/engine.py` is the deterministic digital twin, audit, gate, prune, and exam.
 - `factory/crusoe.py` calls **Crusoe Managed Inference** with `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B` for the planner and reviewer.
 - `factory/vision.py` calls Crusoe with `nvidia/NVIDIA-Nemotron-3.5-Super-VL` for camera findings and evidence verification.
+- `factory/pilot.py` calls Crusoe with `nvidia/Nemotron-3.5-Lightning-30B-A3B` for bounded `forward`, `back`, `left`, `right`, and `stop` commands from egocentric goal and five-ray free-distance state. The browser rejects obstacle-intersecting moves and falls back to its A* route planner when the pilot is unavailable.
+- A routed vision finding opens a work order, pilots an arm to the station, and sends the resulting frame to `/api/verify`; the checked-in CAM-02 verification record is an explicit negative (`arm_on_site: false`), so the evidence path reports an evidence gap instead of claiming a successful closure.
 - `factory/server.py` exposes the replay and API. With no key it replays recorded evidence or runs the rule-based auditor; no live call is required for the demo.
 - The browser renders a 14.2M-splat plant-room scan and overlays robots, cameras, and work orders. The UI visualizes the team’s decisions; it is not the product’s main feature.
 
@@ -49,7 +55,7 @@ python3 -m unittest discover -s factory -p 'test_*.py'
 CRUSOE_API_KEY=... python3 -m factory.server
 ```
 
-Open `http://127.0.0.1:5188`; `?demo=1` plays the short replay. Secrets are injected with `hsec` for live work and are never stored in the repository.
+Open `http://127.0.0.1:5188`; `?demo=1` plays the scripted one-minute sequence. Secrets are injected with `hsec` for live work and are never stored in the repository.
 
 ## Evidence and limitations
 
@@ -58,6 +64,7 @@ Open `http://127.0.0.1:5188`; `?demo=1` plays the short replay. Secrets are inje
 - Criterion-by-criterion judging map: [`docs/JUDGING.md`](docs/JUDGING.md).
 - The factory is a synthetic simulator over a real scan. Its rates and score gains are modeled evaluator behavior, not claims about a physical plant.
 - Vision findings are real recorded model outputs, but they do **not** change the simulator score; the score comes from the deterministic maintenance twin.
+- The pilot and vision work-order path is an interactive layer around the twin; its cached verification example is a failed on-site check, not evidence of physical execution or safety.
 - The scan is streamed from SuperSplat at runtime and is not bundled here. See the rights note in `factory/README.md`.
 
 ## Credits

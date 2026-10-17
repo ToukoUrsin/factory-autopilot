@@ -32,6 +32,12 @@ The accepted policy is generation 3: deadline sweep enabled, three-day reorder b
 
 The live evidence contains 5 successful Crusoe calls, 6 recorded camera calls, and 1 routed camera finding. Planner and reviewer calls use `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B`; camera calls use `nvidia/NVIDIA-Nemotron-3.5-Super-VL`. The deterministic evaluator makes no model calls.
 
+The six camera records are `factory/evidence/vision/CAM-01.json` through `CAM-06.json`. CAM-02 is the routed finding at station S02: the VL output reports a grey cable resting across a red machine and sets `route_to_planner: true`. The follow-up `factory/evidence/vision/verify-CAM-02.json` uses the same VL family and returns `arm_on_site: false` because the orange arm is not visible in the frame. This is an inspectable evidence gap, not a successful closure claim. The browser uses the cached record unless `fresh` is requested.
+
+The robot pilot is implemented in `factory/pilot.py`: it sends bounded egocentric state to `nvidia/Nemotron-3.5-Lightning-30B-A3B`, accepts only the five discrete commands in `COMMANDS`, and limits a response to five commands. Browser-side collision checks reject a move that cannot clear the scanned walk grid; the browser falls back to the A* planner when `/api/pilot` is unavailable. No pilot score or physical-world safety claim is included in the exam ledger.
+
+`/api/demo` adds a deterministic leave-one-out `ablation` list at server startup. The three kept edits have score drops of 16.4, 10.3, and 0.8 points when removed; the rejected `fast_track` row records a -9.2 gate delta and 15 unsafe actions when enabled. These values are recomputed from `factory.engine.aggregate` over the 12 exam seeds; they are not model-generated metrics.
+
 ## Limits
 
-The twin is synthetic, so the score is evidence that this evaluator selects the modeled mechanisms correctly, not a physical safety or savings guarantee. The six vision outputs are inspectable model evidence, but vision findings do not feed the simulator’s exam score.
+The twin is synthetic, so the score is evidence that this evaluator selects the modeled mechanisms correctly, not a physical safety or savings guarantee. The six vision outputs are inspectable model evidence, but vision findings do not feed the simulator’s exam score. The pilot, work-order, and verification path is an interactive demonstration layer; the checked-in verification result is negative and does not establish that a physical arm reached a site.
