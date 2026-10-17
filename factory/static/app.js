@@ -570,7 +570,7 @@ function closeDrawer() { $('drawer').classList.remove('on'); if (viewer) viewer.
 function openCam(c) {
   const r = c.result, dets = r?.ok ? r.detections : [];
   const boxes = dets.map((d) => { const [x0, y0, x1, y1] = d.box, bad = isIssue(d); return `<rect x="${x0}" y="${y0}" width="${Math.max(4, x1 - x0)}" height="${Math.max(4, y1 - y0)}" fill="none" stroke="${bad ? '#ff5a1f' : 'rgba(255,255,255,.85)'}" style="stroke-width:${bad ? 3 : 1.5}px" vector-effect="non-scaling-stroke"/>`; }).join('');
-  const labels = dets.map((d) => `<span class="blabel ${isIssue(d) ? 'bad' : ''}" style="left:${d.box[0] / 10}%;top:${d.box[1] / 10}%">${esc(d.label)}</span>`).join('');
+  const labels = dets.map((d) => `<span class="blabel ${isIssue(d) ? 'bad' : ''}" style="left:${d.box[0] / 10}%;top:max(${d.box[1] / 10}%, 20px)">${esc(d.label)}</span>`).join('');
   const verify = state.verify?.[c.id];
   openDrawer(`<h2>${c.id} · ${c.station} ${esc(STATION_MAP[c.station].object.component_name)}</h2><div class="sub">frame rendered from the Gaussian splat scan · labelled by Nemotron 3.5 Super VL on Crusoe</div>
     <div class="shot"><img src="${c.frame || ''}"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none">${boxes}</svg>${labels}</div>
